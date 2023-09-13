@@ -14,9 +14,6 @@ public class Cell
 
     [Space(20)]
     [Header("Pathfinding Variables")]
-    public int F;
-    public int g;
-    public int h;
     public Cell parent;
 
     private readonly List<Cell> neighborList = new List<Cell>();
@@ -79,6 +76,11 @@ public class Cell
     public Vector2Int GetPosition()
     {
         return position;
+    }
+
+    public  Vector3Int GetPosition3()
+    {
+        return new Vector3Int(position.x, position.y);
     }
 
     public void SetPosition(Vector2Int pos)

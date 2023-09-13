@@ -27,7 +27,6 @@ public class mainManager : MonoBehaviour
 
     //Input Stuff
     InputActions inputActions;
-    PlayerController playerController;
 
 
     private void Awake()
@@ -38,7 +37,6 @@ public class mainManager : MonoBehaviour
     private void OnEnable()
     {
         inputActions.BaseInput.Enable();
-        assignInputCallbacks();
     }
     private void OnDisable()
     {
@@ -60,7 +58,6 @@ public class mainManager : MonoBehaviour
 
         grid = GameObject.Find("Grid").GetComponent<Grid>();
         mapManager = GameObject.Find("MapManager").GetComponent<MapManager>();
-        playerController = GameObject.Find("Player").GetComponent<PlayerController>();
     }
 
     void Update()
@@ -73,52 +70,11 @@ public class mainManager : MonoBehaviour
     }
 
 
-    private void assignInputCallbacks()
-    {
-        inputActions.BaseInput.DirectionalKeys.performed += ctx => handleDirectionalInput(ctx.ReadValue<Vector2>());
-    }
 
-
-    private void handleDirectionalInput(Vector2 direction)
-    {
-        
-        if (state == State.game && checkCollision(new Vector2Int((int)direction.x,(int) direction.y)) && playerController.movementDone == true)
-        {
-            playerController.movementDone = false;
-            if (direction.x > 0)
-            {
-                playerController.moveEvent.Invoke(movementDirection.right);
-
-            }
-            else if (direction.x < 0)
-            {
-                playerController.moveEvent.Invoke(movementDirection.left);
-            }
-            else if (direction.y > 0)
-            {
-                playerController.moveEvent.Invoke(movementDirection.up);
-            }
-            else if (direction.y < 0)
-            {
-                playerController.moveEvent.Invoke(movementDirection.down);
-            }
-        }
-    }
 
 
 
 
     //==============
     //AUX FUNCTIONS
-    private bool checkCollision( Vector2Int direction)
-    {
-        if (mapManager.cells[mapManager.ocupiedCell.GetPosition().x + direction.x, mapManager.ocupiedCell.GetPosition().y + direction.y].IsWalkable() && (direction != Vector2Int.zero))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
 }
