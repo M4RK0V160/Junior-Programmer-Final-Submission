@@ -30,17 +30,20 @@ public class MapManager: MonoBehaviour
     [Header("Tiles")]
     [SerializeField] private Tile Black;
     [SerializeField] private Tile White;
-    [SerializeField] private Tile Red;
+    [SerializeField] public Tile Red;
+    [SerializeField] private Tile yellow;
 
 
     
     public Tilemap map;
     public Cell[,] cells;
     public List<List<Cell>> rooms;
-    public Cell ocupiedCell;
     public HashSet<Cell> floorCells;
-    private PlayerController playerController;
 
+
+    //Pathfinding
+    public Cell target;
+    public GameObject Agent;
 
 
     
@@ -55,7 +58,6 @@ public class MapManager: MonoBehaviour
         cells = new Cell[mapWidth, mapHeight];
         floorCells = new HashSet<Cell>();
         map = GameObject.Find("Grid").transform.Find("Tilemap").GetComponent<Tilemap>();
-        playerController = GameObject.Find("Player").GetComponent<PlayerController>();
     }
 
 
@@ -98,23 +100,14 @@ public class MapManager: MonoBehaviour
             }
         }
 
+        placeTarget();
 
-        placePlayer();
+        placeAgent();
         
         
 
     }
 
-    private void placePlayer()
-    {
-        //find a tile to start the player at
-        do { ocupiedCell = floorCells.ElementAt(Random.Range(0, floorCells.Count - 1)); }
-        while (map.GetTile(new Vector3Int((int)ocupiedCell.GetPosition().x, (int)ocupiedCell.GetPosition().y)).Equals(Black));
-
-        //move the player to the starting cell
-        ocupiedCell.Ocupy();
-        playerController.gameObject.transform.position = new Vector3(ocupiedCell.GetPosition().x + 0.5f, ocupiedCell.GetPosition().y + 0.5f);
-    }
     public void InitTerrainGeneration()
     {
         //threshold max Value is 10, as its meant to truncate at a point bwtween 0.4 and 0.5
@@ -123,6 +116,7 @@ public class MapManager: MonoBehaviour
             threshold = 10;
         }
 
+        removeAgents();
         //randomize starting point in the perlin noise 1.0 by 1.0 plane 
         x0 = Random.value * scale;
         y0 = Random.value * scale;
@@ -171,13 +165,13 @@ public class MapManager: MonoBehaviour
 
        
         /*| -1,-1 |*/ 
-        if(cells[cell.GetPosition().x - 1, cell.GetPosition().y - 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x - 1, cell.GetPosition().y - 1]);
+        //if(cells[cell.GetPosition().x - 1, cell.GetPosition().y - 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x - 1, cell.GetPosition().y - 1]);
 
         /*|  0,-1 |*/
         if (cells[cell.GetPosition().x   , cell.GetPosition().y - 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x    , cell.GetPosition().y - 1]);
 
         /*| +1,-1 |*/
-        if (cells[cell.GetPosition().x + 1, cell.GetPosition().y - 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x + 1, cell.GetPosition().y - 1]);
+        //if (cells[cell.GetPosition().x + 1, cell.GetPosition().y - 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x + 1, cell.GetPosition().y - 1]);
 
         /*| -1, 0 |*/
         if (cells[cell.GetPosition().x - 1, cell.GetPosition().y    ].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x - 1, cell.GetPosition().y    ]);
@@ -186,32 +180,15 @@ public class MapManager: MonoBehaviour
         if (cells[cell.GetPosition().x + 1, cell.GetPosition().y    ].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x + 1, cell.GetPosition().y    ]);
 
         /*| -1,+1 |*/
-        if (cells[cell.GetPosition().x - 1, cell.GetPosition().y + 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x - 1, cell.GetPosition().y + 1]);
+        //if (cells[cell.GetPosition().x - 1, cell.GetPosition().y + 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x - 1, cell.GetPosition().y + 1]);
 
         /*|  0,+1 |*/
         if (cells[cell.GetPosition().x    , cell.GetPosition().y + 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x    , cell.GetPosition().y + 1]);
 
         /*| +1,+1 |*/
-        if (cells[cell.GetPosition().x + 1, cell.GetPosition().y + 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x + 1, cell.GetPosition().y + 1]);
+        //if (cells[cell.GetPosition().x + 1, cell.GetPosition().y + 1].IsWalkable()) cell.AddNeighbor(cells[cell.GetPosition().x + 1, cell.GetPosition().y + 1]);
     }
 
-    internal void moveOccupiedCell(Vector2Int direction)
-    {
-
-        map.SetTile(new Vector3Int(ocupiedCell.GetPosition().x, ocupiedCell.GetPosition().y), White);
-        ocupiedCell.Desocupy();
-        ocupiedCell = cells[ocupiedCell.GetPosition().x + direction.x, ocupiedCell.GetPosition().y + direction.y];
-        map.SetTile(new Vector3Int(ocupiedCell.GetPosition().x, ocupiedCell.GetPosition().y), Red);
-        ocupiedCell.Ocupy();
-        playerController.movementDone = true;
-    }
-
-    internal void relocateStartingOccupiedCell(Vector2Int direction)
-    {
-        map.SetTile(new Vector3Int(ocupiedCell.GetPosition().x, ocupiedCell.GetPosition().y), Black);
-        ocupiedCell = cells[ocupiedCell.GetPosition().x + direction.x, ocupiedCell.GetPosition().y + direction.y];
-        playerController.movementDone = true;
-    }
 
     //UNDER DEVELOPMENT
     /* 
@@ -258,4 +235,33 @@ public class MapManager: MonoBehaviour
         }
     }
    */
+
+    //==================
+    // Aux Functions
+    //=================
+    private void removeAgents()
+    {
+        GameObject[] agents = GameObject.FindGameObjectsWithTag("Agent");
+        foreach (GameObject agent in agents)
+        {
+            Destroy(agent);
+        }
+    }
+    private void placeTarget()
+    {
+        //find a tile to be the target
+        do { target = floorCells.ElementAt(Random.Range(0, floorCells.Count - 1)); }
+        while (map.GetTile(target.GetPosition3()).Equals(Black));
+
+        map.SetTile(target.GetPosition3(), yellow);
+
+    }
+
+    private void placeAgent()
+    {
+        Cell agentCell;
+        do { agentCell = floorCells.ElementAt(Random.Range(0, floorCells.Count - 1)); }
+        while (map.GetTile(agentCell.GetPosition3()).Equals(Black));
+        Instantiate(Agent, new Vector3(agentCell.GetPosition().x + 0.5f, agentCell.GetPosition().y + 0.5f), new Quaternion(0, 0, 0, 0));
+    }
 }

@@ -11,7 +11,7 @@ public class AStarPath
 
     private Cell target;
 
-    private mainManager manager;
+    private mainManager manager = GameObject.Find("MainManager").GetComponent<mainManager>().Instance;
 
     public List<Cell> CalculatePath(Cell start, Cell target)
     {
